@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>角色管理</title>
+    <link rel="stylesheet" href="css/index.css">
+    <script type="text/javascript" src="js/vue.js"></script>
+    <script type="text/javascript" src="js/vue-router.js"></script>
+    <script type="text/javascript" src="js/axios.min.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-table
+                :data="records"
+                style="width: 100%">
+            <el-table-column
+                    prop="id"
+                    label="用户ID"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="rolename"
+                    label="角色名称"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    fixed="right"
+                    label="操作">
+                <template slot-scope="scope">
+                    <!--scope.row指的就是当前这一行-->
+                    <el-button type="text" size="small" @click="showPermissions(scope.row.id)">修改权限</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <el-dialog
+                title="提示"
+                :visible.sync="dialogVisible"
+                width="30%"
+                :before-close="handleClose">
+            <div>
+                <!--展示所有权限，以及某个角色拥有的权限应该被选中-->
+                <el-tree
+                        :data="permissions"
+                        show-checkbox
+                        node-key="id"
+                        ref="tree"
+                        :default-checked-keys="checkedNodes"
+                        :props="defaultProps">
+                </el-tree>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="setPermission">确 定</el-button>
+            </span>
+        </el-dialog>
+    </div>
+    <script>
+        new Vue({
+            el:"#app",
+            data:{
+                records:[],
+                dialogVisible:false,
+                permissions: [],//后台返回的权限集合
+                defaultProps: {
+                    children: 'children',
+                    label: 'element'
+                },
+                checkedNodes:[],//所选的角色拥有的权限
+                rolePermissionForm:{
+                    pids:[],
+                    rid:0
+                }
+            },
+            methods:{
+                findAllRole:function () {
+                    var _this=this
+                    axios.get("/role").then(function (resp) {
+                        _this.records=resp.data.data
+                    })
+                },
+                handleClose:function(done) {
+                    this.$confirm('确认关闭？').then(_ => {
+                        done();
+                    }).catch(_ => {});
+                },
+                getAllPermissions:function(){//查询所有权限
+                    var _this=this
+                    axios.get("/permission").then(function (resp) {
+                       console.log(resp.data.data)
+                        _this.permissions=resp.data.data
+                    })
+                },
+                getPermissionsByRid:function(rid){//返回的应该是第三级权限的id
+                    var _this=this
+                    axios.get("/permission/"+rid).then(function (resp) {
+                        _this.checkedNodes=resp.data.data
+                    })
+                },
+                showPermissions:function(rid){
+                    this.dialogVisible=true;
+                    //向后台发请求，查询所有权限以及当前角色拥有的权限
+                    this.getAllPermissions()
+                    this.getPermissionsByRid(rid)
+                    this.rolePermissionForm.rid=rid
+                },
+                setPermission:function () {//修改权限
+                    this.rolePermissionForm.pids=this.$refs.tree.getCheckedKeys(true)//能够获得所有三级菜单的id
+                    axios.post("/role/setPermission",this.rolePermissionForm).then(function (resp) {
+                        alert(resp.data.message)
+                    })
+                }
+            },
+            created:function () {//vue对象一创建就向后台发请求，查询所有角色信息
+                this.findAllRole()
+            }
+        })
+    </script>
+</body>
+</html>

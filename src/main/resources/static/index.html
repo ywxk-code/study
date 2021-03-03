@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+    <link rel="stylesheet" href="css/index.css">
+    <script type="text/javascript" src="js/vue.js"></script>
+    <script type="text/javascript" src="js/vue-router.js"></script>
+    <script type="text/javascript" src="js/axios.min.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+    <style>
+        .el-header, .el-footer {
+            background-color: #B3C0D1;
+            color: #333;
+            text-align: center;
+            line-height: 50px;
+        }
+
+        .el-aside {
+            background-color: #D3DCE6;
+            color: #333;
+            text-align: center;
+            line-height: 200px;
+        }
+
+        .el-main {
+            background-color: #E9EEF3;
+            color: #333;
+            text-align: center;
+            line-height: 160px;
+        }
+
+        body > .el-container {
+            margin-bottom: 40px;
+        }
+
+        .el-container:nth-child(5) .el-aside,
+        .el-container:nth-child(6) .el-aside {
+            line-height: 260px;
+        }
+
+        .el-container:nth-child(7) .el-aside {
+            line-height: 320px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <h1>欢迎使用本系统，<a href="" @click.prevent="logout">退出登录</a></h1>
+        </el-header>
+        <el-container>
+            <el-aside width="200px">
+                <el-menu>
+                    <el-submenu :index="index+''" v-for="menu,index in menus">
+                        <!--一级菜单-->
+                        <template slot="title">{{menu.element}}</template>
+                        <el-menu-item :index="childIndex+''" style="margin-left:30px" v-for="child,childIndex in menu.children">
+                            <!--将二级菜单的id存到sessionStorage中，便于点击相对应的功能-->
+                            <a :href="child.url" @click="saveId(child.id)" target="main">{{child.element}}</a>
+                        </el-menu-item>
+                    </el-submenu>
+                </el-menu>
+            </el-aside>
+            <el-main><iframe name="main" style="width: 100%;height: 600px"></iframe></el-main>
+        </el-container>
+    </el-container>
+</div>
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            menus:[]
+        },
+        methods:{
+            logout:function () {
+                axios.get("/user/logout").then(function (resp) {
+                    location.href="login.html"
+                })
+            },
+            getMenus:function () {
+                var _this=this
+                axios.get("/user/getMenus").then(function (resp) {
+                    _this.menus=resp.data.data
+                })
+            },
+            saveId:function (id) {
+                sessionStorage.setItem("id",id);
+            }
+        },
+        created:function () {
+            this.getMenus()
+        }
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="css/index.css">
+    <script type="text/javascript" src="js/vue.js"></script>
+    <script type="text/javascript" src="js/vue-router.js"></script>
+    <script type="text/javascript" src="js/axios.min.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-table
+                :data="page.records"
+                style="width: 100%">
+            <el-table-column
+                    prop="id"
+                    label="用户ID"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="username"
+                    label="用户名"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="password"
+                    label="用户密码"
+                    width="360">
+            </el-table-column>
+            <el-table-column
+                    fixed="right"
+                    label="操作">
+                <template slot-scope="scope">
+                    <el-button type="text" size="small">查询用户</el-button>
+                    <!--scope.row指的就是当前这一行-->
+                    <el-button @click="handleClick(scope.row)" type="text" size="small">修改用户</el-button>
+                    <el-button type="text" size="small">删除用户</el-button>
+                    <el-button v-if="isRole" type="text" size="small" @click="showRoles(scope.row.id)">授予角色</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <el-dialog
+                title="提示"
+                :visible.sync="dialogVisible"
+                width="30%"
+                :before-close="handleClose">
+            <!--查询数据库得到用户信息，在此展示 v-for-->
+            <div>
+                <el-checkbox-group v-model="checkList">
+                    <el-checkbox :label="role.rolename" v-for="role in roles">{{role.rolename}}</el-checkbox>
+                </el-checkbox-group>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="setRole">确 定</el-button>
+            </span>
+        </el-dialog>
+    </div>
+    <script>
+        new Vue({
+            el:"#app",
+            data:{
+                page:{
+                    current:1,
+                    size:10,
+                    pages:0,
+                    total:0,
+                    records:[]
+                },
+                isRole:false,
+                dialogVisible: false,
+                roles:[],//存储系统中所有的角色
+                checkList: [],// 当前用户有哪些角色的集合
+                userRoleForm:{
+                    checkList:[],
+                    uid:0
+                }
+            },
+            methods: {
+                handleClose:function(done) {
+                    this.$confirm('确认关闭？').then(_ => {
+                        done();
+                }).catch(_ => {});
+                },
+                handleClick:function(row) {
+                    console.log(row);
+                },
+                find2page:function (current,size) {
+                    var _this=this
+                    axios.get("/user/getAll",{
+                        params:{
+                            current:current,
+                            size:size
+                        }
+                    }).then(function (resp) {
+                        _this.page=resp.data.data
+                    })
+                },
+                getButtons:function () {
+                    var _this=this
+                    axios.get("/user/getButtons").then(function (resp) {
+                        var buttons=resp.data.data
+                        for(var i=0;i<buttons.length;i++){
+                            if(buttons[i].element=="授予角色"){
+                                _this.isRole=true
+                                break;
+                            }
+                        }
+                    })
+                },
+                showRoles:function (id) {
+                    var _this=this
+                    this.dialogVisible=true
+                    axios.get("/role").then(function (resp) {
+                        _this.roles=resp.data.data
+                    })
+                    _this.getRoleByUid(id)//获取当前用户所拥有的的所有角色
+                },
+                getRoleByUid:function (id) {
+                    var _this=this
+                    axios.get("/role/"+id).then(function (resp) {
+                        _this.checkList=resp.data.data
+                        _this.userRoleForm.checkList=resp.data.data
+                        _this.userRoleForm.uid=id;
+                    })
+                },
+                setRole:function () {//授予角色
+                    this.userRoleForm.checkList=this.checkList
+                    this.dialogVisible=false
+                    axios.post("/user/setRole",this.userRoleForm).then(function (resp) {
+                        
+                    })
+                }
+            },
+            created:function () {
+                this.getButtons()
+                this.find2page(this.page.current,this.page.size)
+            }
+        })
+    </script>
+</body>
+</html>
